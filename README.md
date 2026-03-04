@@ -1,14 +1,9 @@
----
+# 📄 D-SVG
 
-# D-SVG: Diffusion-Based Slice-to-Volume Generation for Fetal Brain MRI
-
-Official PyTorch implementation of
+Official PyTorch implementation of:
 
 **D-SVG: Diffusion Based Slice-to-Volume Generation with Implicit Neural Representation for Fetal Brain MRI**
 
-📄 Paper:
-
----
 
 ## 🧠 Overview
 
