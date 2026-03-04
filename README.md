@@ -218,29 +218,3 @@ This project builds upon several excellent open-source works:
 * NIFTYMIC
 * Denoising Diffusion Probabilistic Models
 
----
-
-💡 **我建议你 README 里再加两块内容，会让 GitHub 项目更像顶会代码：**
-
-1️⃣ **Method figure（论文 pipeline 图）**
-2️⃣ **Reconstruction visualization**
-
-类似这样：
-
-```
-images/
-   pipeline.png
-   reconstruction.png
-```
-
----
-
-如果你愿意，我可以帮你 **再升级一个 GitHub 论文级 README**，比如加入：
-
-* pipeline 图展示
-* reconstruction GIF
-* citation badge
-* arxiv badge
-* project page
-
-那一版基本就是 **MICCAI / CVPR 开源代码风格**。
