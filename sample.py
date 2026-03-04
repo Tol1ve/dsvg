@@ -16,8 +16,9 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i', '--inputfolder', type=str, default="dataset/whole_head/mask")
-parser.add_argument('-e', '--exportfolder', type=str, default="exports/")
+parser.add_argument('-i', '--inputfolder', type=str, default="/home/lvyao/git/med-ddpm/results_resume/test_Tdataset")
+#parser.add_argument('-i', '--inputfolder', type=str, default="/home/lvyao/Git_157copy/Git/S-R-data/feta_2.2_mial/sub-018/anat")
+parser.add_argument('-e', '--exportfolder', type=str, default="/home/lvyao/git/med-ddpm/results/test_export")
 parser.add_argument('--input_size', type=int, default=128)
 parser.add_argument('--depth_size', type=int, default=128)
 parser.add_argument('--num_channels', type=int, default=64)
@@ -26,7 +27,7 @@ parser.add_argument('--batchsize', type=int, default=1)
 parser.add_argument('--num_samples', type=int, default=1)
 parser.add_argument('--num_class_labels', type=int, default=3)
 parser.add_argument('--timesteps', type=int, default=250)
-parser.add_argument('-w', '--weightfile', type=str, default="model/model_128.pt")
+parser.add_argument('-w', '--weightfile', type=str, default="/home/lvyao/git/med-ddpm/results/model-39.pt")
 args = parser.parse_args()
 
 exportfolder = args.exportfolder
@@ -42,7 +43,9 @@ in_channels = args.num_class_labels
 out_channels = 1
 device = "cuda"
 
-mask_list = sorted(glob.glob(f"{inputfolder}/*.nii.gz"))
+#mask_list = sorted(glob.glob(f"{inputfolder}/*.nii.gz"))
+mask_list = [os.path.join(inputfolder,f) for f in os.listdir(inputfolder) if f.endswith('tissue.nii.gz')]
+mask_list = [os.path.join(inputfolder,f) for f in os.listdir(inputfolder) if f.endswith('dseg_reg.nii.gz')]
 print(len(mask_list))
 
 
@@ -59,13 +62,28 @@ def resize_img_4d(input_img):
         return result_img
     else:
         return input_img
+def resize_img_newshape(input_img,shape):
+    c,h, w, d = input_img.shape
+    result_img = np.zeros((c,*shape))
 
+    for ch in range(c):
+        buff = input_img.copy()[ch,...]
+        img = tio.ScalarImage(tensor=buff[np.newaxis, ...])
+        cop = tio.Resize(shape)
+        img = np.asarray(cop(img))[0]
+        result_img[ch,...] += img
+    return result_img.squeeze()
+
+# def label2masks(masked_img):
+#     result_img = np.zeros(masked_img.shape + (in_channels-1,))
+#     result_img[masked_img==LabelEnum.BRAINAREA.value, 0] = 1
+#     result_img[masked_img==LabelEnum.TUMORAREA.value, 1] = 1
+#     return result_img
 def label2masks(masked_img):
-    result_img = np.zeros(masked_img.shape + (in_channels-1,))
-    result_img[masked_img==LabelEnum.BRAINAREA.value, 0] = 1
-    result_img[masked_img==LabelEnum.TUMORAREA.value, 1] = 1
+    result_img = np.ones(masked_img.shape + ( in_channels-1,))
+    result_img[masked_img==0, 0] = 0
+    #result_img[masked_img==LabelEnum.TUMORAREA.value, 1] = 1
     return result_img
-
 
 input_transform = Compose([
     Lambda(lambda t: torch.tensor(t).float()),
@@ -107,7 +125,7 @@ for k, inputfile in enumerate(mask_list):
     batches = num_to_groups(num_samples, batchsize)
     steps = len(batches)
     sample_count = 0
-    
+     
     print(f"All Step: {steps}")
     counter = 0
     
@@ -130,8 +148,9 @@ for k, inputfile in enumerate(mask_list):
             counter = counter + 1
             sampleImage = sampleImages[b][0]
             sampleImage = sampleImage.numpy()
-            sampleImage=sampleImage.reshape(refImg.shape)
-            nifti_img = nib.Nifti1Image(sampleImage, affine=ref.affine)
+
+            sampleImage=resize_img_newshape(sampleImage,refImg.shape)
+            nifti_img = nib.Nifti1Image(sampleImage, affine=np.eye(4))
             nib.save(nifti_img, os.path.join(img_dir, f'{counter}_{msk_name}'))
             nib.save(ref, os.path.join(msk_dir, f'{counter}_{msk_name}'))
         torch.cuda.empty_cache()
